@@ -1,0 +1,13 @@
+- persist state
+- show qalculate formatted expression with output while typing
+- show warnings / errors
+- functions / variables / units browser
+- plotting
+- exchange rates
+- autocomplete / function hints
+- settings
+- dark mode
+- history import / export
+- PWA
+- share via URL
+- keyboard shortcuts
