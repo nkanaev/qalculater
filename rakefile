@@ -1,0 +1,139 @@
+require "rake"
+require "pathname"
+require 'etc'
+
+ROOT = Pathname.new(__dir__).relative_path_from(Dir.pwd).to_s
+JOBS = Etc.nprocessors
+
+DEPDIR   = File.join(ROOT, "out", "dep")
+PKGDIR   = File.join(ROOT, "out", "pkg")
+BUILDDIR = File.join(ROOT, "out", "build")
+OUTDIR   = File.join(BUILDDIR, "install")
+PUBLIC   = File.join(ROOT, "public")
+
+OUTDIR_ABS = File.expand_path(OUTDIR)
+
+GMP_VER       = "6.3.0"
+MPFR_VER      = "4.2.2"
+XML2_VER      = "2.15.1"
+QALCULATE_VER = "5.11.0"
+
+GMP_URL         = "https://ftp.gnu.org/gnu/gmp/gmp-#{GMP_VER}.tar.xz"
+MPFR_URL        = "https://ftp.gnu.org/gnu/mpfr/mpfr-#{MPFR_VER}.tar.xz"
+XML2_URL        = "https://download.gnome.org/sources/libxml2/2.15/libxml2-#{XML2_VER}.tar.xz"
+QALCULATE_URL   = "https://github.com/Qalculate/libqalculate/releases/download/v#{QALCULATE_VER}/libqalculate-#{QALCULATE_VER}.tar.gz"
+
+def fetch(name, url)
+  mkdir_p PKGDIR
+  mkdir_p DEPDIR
+
+  outfile = File.basename(url)
+  outpath = File.join(PKGDIR, outfile)
+  outtemp = File.join(PKGDIR, outfile + ".tmp")
+  if !File.exist?(outpath)
+    sh "curl --fail --show-error --location --output #{outtemp} #{url}"
+    File.rename(outtemp, outpath)
+  end
+  srcpath = File.join(DEPDIR, name.to_s)
+  if !Dir.exist?(srcpath)
+    sh "tar -xf #{outpath} -C #{DEPDIR}"
+    sh "mv #{File.join(DEPDIR, name.to_s)}-* #{srcpath}"
+  end
+end
+
+def build(name, opts="", env_conf=nil, make_opts="")
+  srcpath = File.join(DEPDIR, name.to_s)
+  Dir.chdir(srcpath) do
+    conf_env = "CC_FOR_BUILD=emcc"
+    if env_conf
+      conf_env += " " + env_conf.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
+    end
+    sh "env #{conf_env} emconfigure ./configure --prefix=#{OUTDIR_ABS} #{opts}"
+    sh "emmake make -j#{JOBS} #{make_opts}"
+    sh "emmake make install"
+  end
+end
+
+def check_emscripten
+  sh "emcc --version", verbose: false
+rescue RuntimeError
+  abort "emscripten not found on PATH. Install and activate it first, see readme.md."
+end
+
+desc "Check that emscripten is available on PATH"
+task :check do
+  check_emscripten
+end
+
+libgmp  = File.join(OUTDIR, "lib", "libgmp.a")
+libmpfr = File.join(OUTDIR, "lib", "libmpfr.a")
+libxml2 = File.join(OUTDIR, "lib", "libxml2.a")
+libqalc = File.join(OUTDIR, "lib", "libqalculate.a")
+
+file libgmp do
+  fetch :gmp, GMP_URL
+  build :gmp, "--host none --disable-assembly --disable-cxx --disable-fft --enable-alloca=notreentrant"
+end
+
+file libmpfr => [libgmp] do
+  fetch :mpfr, MPFR_URL
+  build :mpfr, "--host none --disable-thread-safe --enable-decimal-float=no --with-gmp=#{OUTDIR_ABS}"
+end
+
+file libxml2 do
+  check_emscripten
+  fetch :libxml2, XML2_URL
+  build :libxml2, "--host none --with-minimum --with-sax1 --with-tree --with-output"
+end
+
+file libqalc => [libgmp, libmpfr, libxml2] do
+  fetch :libqalculate, QALCULATE_URL
+  env_conf = {
+    "CPPFLAGS"      => "-I#{OUTDIR_ABS}/include",
+    "LDFLAGS"       => "-L#{OUTDIR_ABS}/lib",
+    "LIBXML_CFLAGS" => "-I#{OUTDIR_ABS}/include/libxml2",
+    "LIBXML_LIBS"   => "-L#{OUTDIR_ABS}/lib -lxml2",
+  }
+  build :libqalculate, "--host none --without-libcurl --without-icu --disable-textport --disable-nls --with-gnuplot-call=byo --enable-compiled-definitions", env_conf
+end
+
+entry_obj = File.join(BUILDDIR, "entry.o")
+
+file entry_obj => [libqalc, "src/entry.cpp"] do
+  mkdir_p BUILDDIR
+  sh "emcc --bind -std=c++17 -O2 -I#{OUTDIR_ABS}/include -I#{OUTDIR_ABS}/include/libxml2 -c src/entry.cpp -o #{entry_obj}"
+end
+
+qalc_js = File.join(PUBLIC, "qalc.js")
+
+file qalc_js => [entry_obj] do
+  mkdir_p PUBLIC
+  sh "em++ --bind -O2 -s WARN_UNALIGNED=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s FILESYSTEM=0 -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=67108864 -L#{OUTDIR_ABS}/lib -lqalculate -lxml2 -lmpfr -lgmp #{entry_obj} -o #{qalc_js}"
+end
+
+static = %w[index.html main.js style.css].map { |f| File.join(PUBLIC, f) }
+static.each do |dst|
+  src = File.join("src", File.basename(dst))
+  file dst => [src] do
+    mkdir_p PUBLIC
+    cp src, dst
+  end
+end
+
+desc "Build the wasm calculator into public/"
+task :build => [qalc_js]
+
+desc "Build the full deployable public/ directory"
+task :deploy => [qalc_js] + static
+
+desc "Build and serve at http://localhost:8000"
+task :serve => [:deploy] do
+  sh "ruby -run -e httpd #{PUBLIC} -p 8000"
+end
+
+desc "Remove downloaded and built artifacts (keeps pkg/ tarballs)"
+task :clean do
+  rm_rf [DEPDIR, BUILDDIR, PUBLIC]
+end
+
+task :default => :build
