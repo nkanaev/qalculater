@@ -33,7 +33,6 @@ body {
     overflow-y: auto;
     display: flex;
     flex-direction: column-reverse;
-    gap: 1ch;
 }
 
 #welcome {
