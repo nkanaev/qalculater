@@ -1,4 +1,4 @@
-# webqalc
+# qalculater
 
 Web version of [Qalculate](https://qalculate.github.io/): a single page with a
 JS wrapper around a libqalculate WASM build.
