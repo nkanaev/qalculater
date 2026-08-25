@@ -1,41 +1,53 @@
-const statusEl = document.getElementById('status');
-const historyEl = document.getElementById('history');
-const input = document.getElementById('input');
+const { createApp, ref, shallowRef, computed, watch } = Vue;
 
-let calc = null;
+const calc = shallowRef(null);
+const input = ref('');
+const entries = ref(JSON.parse(localStorage.getItem('qalc-history') || '[]'));
 
-function appendEntry(expr, result) {
-    const entry = document.createElement('div');
-    entry.className = 'entry';
-    const exprEl = document.createElement('div');
-    exprEl.className = 'expr';
-    exprEl.textContent = '> ' + expr;
-    const resultEl = document.createElement('div');
-    resultEl.className = 'result';
-    resultEl.textContent = result;
-    entry.append(exprEl, resultEl);
-    historyEl.append(entry);
-    window.scrollTo(0, document.body.scrollHeight);
-}
+const examples = [
+    '2x + 5 = 9',
+    '1 inch in cm',
+    'sin(30 deg)',
+    'integrate(x^2, x)',
+];
 
-input.addEventListener('keydown', (ev) => {
-    if (ev.key !== 'Enter') return;
-    const expr = input.value.trim();
-    if (!expr) return;
-    input.value = '';
-    appendEntry(expr, calc ? calc.calculateAndPrint(expr, 1000) : 'not ready');
-});
+watch(entries, (v) => {
+    localStorage.setItem('qalc-history', JSON.stringify(v));
+}, { deep: true });
+
+createApp({
+    setup() {
+        const reversed = computed(() => entries.value.slice().reverse());
+
+        function submit() {
+            const expr = input.value.trim();
+            if (!expr) return;
+            input.value = '';
+            entries.value.push({
+                expr,
+                result: calc.value ? calc.value.calculateAndPrint(expr, 1000) : 'not ready',
+            });
+        }
+
+        function clearHistory() {
+            entries.value = [];
+        }
+
+        function useExample(ex) {
+            input.value = ex;
+            document.getElementById('input').focus();
+        }
+
+        return { input, entries: reversed, submit, clearHistory, examples, useExample };
+    },
+}).mount('#app');
 
 var Module = {
     postRun: () => {
-        calc = new Module.Calculator();
-        calc.loadGlobalDefinitions();
-        statusEl.textContent = 'ready (' + calc.getVersion() + ')';
-        input.focus();
+        calc.value = new Module.Calculator();
+        calc.value.loadGlobalDefinitions();
+        document.getElementById('input').focus();
     },
     print: (text) => console.log(text),
     printErr: (text) => console.error(text),
-    setStatus: (text) => {
-        statusEl.textContent = text;
-    },
 };

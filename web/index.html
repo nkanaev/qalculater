@@ -7,15 +7,31 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-    <h1>qalc</h1>
-    <div id="status">loading&hellip;</div>
-</header>
-<main id="history"></main>
-<footer>
-    <input id="input" type="text" autofocus autocomplete="off" spellcheck="false"
-           placeholder="2x + 5 = 9">
-</footer>
+<div id="app">
+    <main id="history" ref="historyEl">
+        <div id="welcome" v-if="!entries.length">
+            <div>qalc</div>
+            <div>type an expression and press enter</div>
+            <div class="examples">
+                <div>examples:</div>
+                <button v-for="ex in examples" :key="ex" @click="useExample(ex)">{{ ex }}</button>
+            </div>
+        </div>
+        <div class="entry" v-for="(entry, i) in entries" :key="i">
+            <div class="expr">{{ entry.expr }}</div>
+            <div class="result">{{ entry.result }}</div>
+        </div>
+    </main>
+    <footer>
+        <textarea id="input" rows="1" v-model="input" @keydown.enter.exact.prevent="submit"
+               autofocus autocomplete="off" spellcheck="false"
+               placeholder="2x + 5 = 9"></textarea>
+        <div id="toolbar">
+            <button @click="clearHistory">clear</button>
+        </div>
+    </footer>
+</div>
+<script src="vue.global.prod.js"></script>
 <script src="main.js"></script>
 <script src="qalc.js"></script>
 </body>
