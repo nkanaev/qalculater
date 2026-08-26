@@ -3,6 +3,7 @@ const { createApp, ref, shallowRef, computed, watch } = Vue;
 const calc = shallowRef(null);
 const input = ref('');
 const entries = ref(JSON.parse(localStorage.getItem('qalc-history') || '[]'));
+const stateKey = 'qalc-state';
 
 const examples = [
     '2x + 5 = 9',
@@ -27,10 +28,13 @@ createApp({
                 expr,
                 result: calc.value ? calc.value.calculateAndPrint(expr, 1000) : 'not ready',
             });
+            localStorage.setItem(stateKey, calc.value.saveState());
         }
 
         function clearHistory() {
             entries.value = [];
+            if (calc.value) calc.value.clearState();
+            localStorage.removeItem(stateKey);
         }
 
         function useExample(ex) {
@@ -46,6 +50,8 @@ var Module = {
     postRun: () => {
         calc.value = new Module.Calculator();
         calc.value.loadGlobalDefinitions();
+        const saved = localStorage.getItem(stateKey);
+        if (saved) calc.value.loadState(saved);
         document.getElementById('input').focus();
     },
     print: (text) => console.log(text),

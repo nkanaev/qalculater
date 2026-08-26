@@ -86,8 +86,8 @@ end
 
 entry_obj = File.join(OUTDIR, "entry.o")
 
-file entry_obj => [libqalc, "src/entry.cpp"] do
-  sh "emcc --bind -std=c++17 -O2 -I#{OUTDIR_ABS}/include -I#{OUTDIR_ABS}/include/libxml2 -c src/entry.cpp -o #{entry_obj}"
+file entry_obj => [libqalc, "src/qalc.cpp"] do
+  sh "emcc --bind -std=c++17 -O2 -I#{OUTDIR_ABS}/include -I#{OUTDIR_ABS}/include/libxml2 -c src/qalc.cpp -o #{entry_obj}"
 end
 
 qalc_js = File.join(PUBLIC, "qalc.js")

@@ -22,5 +22,14 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
         }))
         .function("calculateAndPrint", optional_override([](Calculator& self, std::string s, int msecs) {
             return self.calculateAndPrint(s, msecs);
+        }))
+        .function("saveState", optional_override([](Calculator& self) -> std::string {
+            return self.saveTemporaryDefinitions();
+        }))
+        .function("loadState", optional_override([](Calculator& self, std::string xml) -> bool {
+            return self.loadDefinitions(xml.c_str(), true, true) > 0;
+        }))
+        .function("clearState", optional_override([](Calculator& self) {
+            self.resetVariables();
         }));
 }
