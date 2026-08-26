@@ -6,7 +6,6 @@
 - exchange rates
 - autocomplete / function hints
 - settings
-- dark mode
 - history import / export
 - PWA
 - share via URL
