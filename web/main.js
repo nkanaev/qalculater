@@ -36,7 +36,10 @@ function updatePreview(v) {
         el.textContent = '';
         return;
     }
-    el.textContent = calc.value.formatResult(v);
+    const r = JSON.parse(calc.value.calculate(v));
+    const out = r.expr_fmt === r.result ? r.result : `${r.expr_fmt} ${r.approx ? '≈' : '='} ${r.result}`;
+    const warnings = (r.error || '').split('\n').filter(l => l.startsWith('warning: ')).join(' ');
+    el.textContent = warnings ? `${out} ${warnings}` : out;
 }
 
 const updatePreviewDebounced = debounce(updatePreview, 150);
@@ -53,9 +56,10 @@ createApp({
             input.value = '';
             updatePreviewDebounced.cancel();
             updatePreview('');
+            const r = JSON.parse(calc.value.calculate(expr));
             entries.value.push({
                 expr,
-                result: calc.value ? calc.value.calculateAndPrint(expr, 1000) : 'not ready',
+                result: r.error ? r.result + '\n' + r.error : r.result,
             });
             saveStateDebounced();
         }
