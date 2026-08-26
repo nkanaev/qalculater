@@ -23,6 +23,23 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
         .function("calculateAndPrint", optional_override([](Calculator& self, std::string s, int msecs) {
             return self.calculateAndPrint(s, msecs);
         }))
+        .function("formatResult", optional_override([](Calculator& self, std::string s) -> std::string {
+            try {
+                MathStructure parsed = self.parse(s);
+                PrintOptions po = default_print_options;
+                bool approx = false;
+                po.is_approximate = &approx;
+                std::string parsed_str = parsed.print(po);
+                self.startControl(1000);
+                MathStructure result = self.calculate(parsed, default_user_evaluation_options);
+                self.stopControl();
+                std::string result_str = self.print(result, 1000, po);
+                if (parsed_str == result_str) return result_str;
+                return parsed_str + (approx ? " ≈ " : " = ") + result_str;
+            } catch (...) {
+                return "";
+            }
+        }))
         .function("saveState", optional_override([](Calculator& self) -> std::string {
             return self.saveTemporaryDefinitions();
         }))

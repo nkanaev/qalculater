@@ -114,6 +114,16 @@ footer {
     border-top: 1px solid var(--border);
 }
 
+#preview {
+    margin: 0.5em 3ch 0;
+    font-size: 1rem;
+    line-height: 1.4;
+    min-height: 1.4em;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 #toolbar {
     display: flex;
     gap: 1ch;
@@ -137,7 +147,7 @@ footer {
 #input {
     display: block;
     width: 100%;
-    padding: 0.5em 3ch;
+    padding: 0 3ch;
     padding-bottom: calc(3 * 1.4em);
     font-size: 1rem;
     line-height: 1.4;

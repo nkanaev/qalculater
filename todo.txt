@@ -1,4 +1,3 @@
-- show qalculate formatted expression with output while typing
 - show warnings / errors
 - functions / variables / units browser
 - plotting

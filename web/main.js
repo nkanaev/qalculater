@@ -16,6 +16,33 @@ watch(entries, (v) => {
     localStorage.setItem('qalc-history', JSON.stringify(v));
 }, { deep: true });
 
+function debounce(fn, ms) {
+    let timer = null;
+    function debounced(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), ms);
+    }
+    debounced.cancel = () => clearTimeout(timer);
+    return debounced;
+}
+
+const saveStateDebounced = debounce(() => {
+    if (calc.value) localStorage.setItem(stateKey, calc.value.saveState());
+}, 300);
+
+function updatePreview(v) {
+    const el = document.getElementById('preview');
+    if (!v.trim() || !calc.value) {
+        el.textContent = '';
+        return;
+    }
+    el.textContent = calc.value.formatResult(v);
+}
+
+const updatePreviewDebounced = debounce(updatePreview, 150);
+
+watch(input, updatePreviewDebounced);
+
 createApp({
     setup() {
         const reversed = computed(() => entries.value.slice().reverse());
@@ -24,14 +51,17 @@ createApp({
             const expr = input.value.trim();
             if (!expr) return;
             input.value = '';
+            updatePreviewDebounced.cancel();
+            updatePreview('');
             entries.value.push({
                 expr,
                 result: calc.value ? calc.value.calculateAndPrint(expr, 1000) : 'not ready',
             });
-            localStorage.setItem(stateKey, calc.value.saveState());
+            saveStateDebounced();
         }
 
         function clearHistory() {
+            saveStateDebounced.cancel();
             entries.value = [];
             if (calc.value) calc.value.clearState();
             localStorage.removeItem(stateKey);
