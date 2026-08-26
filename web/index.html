@@ -4,19 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>qalculater</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="app">
     <main id="history" ref="historyEl">
-        <div id="welcome" v-if="!entries.length">
-            <div>qalc</div>
-            <div>type an expression and press enter</div>
-            <div class="examples">
-                <div>examples:</div>
-                <button v-for="ex in examples" :key="ex" @click="useExample(ex)">{{ ex }}</button>
-            </div>
-        </div>
         <div class="entry" v-for="(entry, i) in entries" :key="i">
             <div class="expr">{{ entry.expr }}</div>
             <div class="result">{{ entry.result }}</div>
@@ -26,7 +19,7 @@
         <div id="preview"></div>
         <textarea id="input" rows="1" v-model="input" @keydown.enter.exact.prevent="submit"
                autofocus autocomplete="off" spellcheck="false"
-               placeholder="2x + 5 = 9"></textarea>
+               placeholder="type an expression and press enter"></textarea>
         <div id="toolbar">
             <button @click="clearHistory">clear</button>
         </div>

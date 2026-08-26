@@ -5,13 +5,6 @@ const input = ref('');
 const entries = ref(JSON.parse(localStorage.getItem('qalc-history') || '[]'));
 const stateKey = 'qalc-state';
 
-const examples = [
-    '2x + 5 = 9',
-    '1 inch in cm',
-    'sin(30 deg)',
-    'integrate(x^2, x)',
-];
-
 watch(entries, (v) => {
     localStorage.setItem('qalc-history', JSON.stringify(v));
 }, { deep: true });
@@ -71,12 +64,7 @@ createApp({
             localStorage.removeItem(stateKey);
         }
 
-        function useExample(ex) {
-            input.value = ex;
-            document.getElementById('input').focus();
-        }
-
-        return { input, entries: reversed, submit, clearHistory, examples, useExample };
+        return { input, entries: reversed, submit, clearHistory };
     },
 }).mount('#app');
 

@@ -56,40 +56,6 @@ body {
     flex-direction: column-reverse;
 }
 
-#welcome {
-    padding: 0.5rem 3ch;
-    color: var(--text-secondary);
-}
-
-#welcome div:first-child {
-    color: var(--text);
-    font-weight: 600;
-    margin-bottom: 0.5em;
-}
-
-.examples {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.2em;
-    margin-top: 1em;
-}
-
-.examples button {
-    appearance: none;
-    font-family: var(--font-mono);
-    font-size: 0.9em;
-    color: var(--text);
-    background: transparent;
-    border: none;
-    padding: 0.2em 1ch;
-    cursor: pointer;
-}
-
-.examples button:hover {
-    background: var(--hover-bg);
-}
-
 .entry {
     padding: 0.5em 3ch;
     word-break: break-word;
