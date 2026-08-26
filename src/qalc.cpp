@@ -48,14 +48,9 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
             bool approx = false;
             try {
                 self.clearMessages();
-                MathStructure parsed = self.parse(input);
                 PrintOptions po = default_print_options;
                 po.is_approximate = &approx;
-                expr_fmt = parsed.print(po);
-                self.startControl(1000);
-                MathStructure res = self.calculate(parsed, default_user_evaluation_options);
-                self.stopControl();
-                result = self.print(res, 1000, po);
+                result = self.calculateAndPrint(input, 1000, default_user_evaluation_options, po, &expr_fmt);
                 while (self.message()) {
                     CalculatorMessage* m = self.message();
                     std::string line = m->message();
