@@ -44,7 +44,9 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
             return std::to_string(QALCULATE_MAJOR_VERSION) + "." + std::to_string(QALCULATE_MINOR_VERSION) + "." + std::to_string(QALCULATE_MICRO_VERSION);
         }))
         .function("calculate", optional_override([](Calculator& self, std::string input) -> std::string {
-            std::string expr_fmt, result, error;
+            std::string expr_fmt, result;
+            std::string warnings = "[", errors = "[";
+            bool has_warning = false, has_error = false;
             bool approx = false;
             try {
                 self.clearMessages();
@@ -54,21 +56,31 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
                 while (self.message()) {
                     CalculatorMessage* m = self.message();
                     std::string line = m->message();
-                    if (m->type() == MESSAGE_ERROR) line = "error: " + line;
-                    else if (m->type() == MESSAGE_WARNING) line = "warning: " + line;
-                    if (!error.empty()) error += "\n";
-                    error += line;
+                    if (m->type() == MESSAGE_ERROR) {
+                        if (has_error) errors += ",";
+                        errors += "\"" + jsonEscape(line) + "\"";
+                        has_error = true;
+                    } else if (m->type() == MESSAGE_WARNING) {
+                        if (has_warning) warnings += ",";
+                        warnings += "\"" + jsonEscape(line) + "\"";
+                        has_warning = true;
+                    }
                     self.nextMessage();
                 }
             } catch (...) {
-                error = "exception during calculation";
+                if (has_error) errors += ",";
+                errors += "\"exception during calculation\"";
+                has_error = true;
             }
+            warnings += "]";
+            errors += "]";
             std::ostringstream oss;
             oss << "{\"expr\":\"" << jsonEscape(input)
                 << "\",\"expr_fmt\":\"" << jsonEscape(expr_fmt)
                 << "\",\"result\":\"" << jsonEscape(result)
                 << "\",\"approx\":" << (approx ? "true" : "false")
-                << ",\"error\":" << (error.empty() ? "null" : "\"" + jsonEscape(error) + "\"")
+                << ",\"warnings\":" << warnings
+                << ",\"errors\":" << errors
                 << "}";
             return oss.str();
         }))

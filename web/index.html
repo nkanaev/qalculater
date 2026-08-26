@@ -12,11 +12,15 @@
     <main id="history" ref="historyEl">
         <div class="entry" v-for="(entry, i) in entries" :key="i">
             <div class="expr">{{ entry.expr }}</div>
-            <div class="result">{{ entry.result }}</div>
+            <div class="result">
+                <span class="sign">{{ entry.expr_fmt !== entry.result ? (entry.approx ? '≈' : '=') : '' }}</span>{{ entry.result }}
+                <div class="entry-error error" v-for="(e, i) in entry.errors" :key="'e'+i"><span class="error-mark">!</span><span>{{ e }}</span></div>
+                <div class="entry-error warning" v-for="(e, i) in entry.warnings" :key="'w'+i"><span class="error-mark">!</span><span>{{ e }}</span></div>
+            </div>
         </div>
     </main>
     <footer>
-        <div id="preview"></div>
+        <label id="preview" for="input"></label>
         <textarea id="input" rows="1" v-model="input" @keydown.enter.exact.prevent="submit"
                autofocus autocomplete="off" spellcheck="false"
                placeholder="type an expression and press enter"></textarea>

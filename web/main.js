@@ -31,7 +31,7 @@ function updatePreview(v) {
     }
     const r = JSON.parse(calc.value.calculate(v));
     const out = r.expr_fmt === r.result ? r.result : `${r.expr_fmt} ${r.approx ? '≈' : '='} ${r.result}`;
-    const warnings = (r.error || '').split('\n').filter(l => l.startsWith('warning: ')).join(' ');
+    const warnings = r.warnings.join(' ');
     el.textContent = warnings ? `${out} ${warnings}` : out;
 }
 
@@ -50,10 +50,7 @@ createApp({
             updatePreviewDebounced.cancel();
             updatePreview('');
             const r = JSON.parse(calc.value.calculate(expr));
-            entries.value.push({
-                expr,
-                result: r.error ? r.result + '\n' + r.error : r.result,
-            });
+            entries.value.push(r);
             saveStateDebounced();
         }
 
