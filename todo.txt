@@ -1,7 +1,5 @@
 - exchange rates
 - autocomplete / function hints
 - settings
-- history import / export
 - PWA
-- share via URL
 - keyboard shortcuts
