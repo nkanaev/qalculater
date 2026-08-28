@@ -4,6 +4,7 @@ const calc = shallowRef(null);
 const input = ref('');
 const entries = ref(JSON.parse(localStorage.getItem('qalc-history') || '[]'));
 const stateKey = 'qalc-state';
+const RATES_KEY = 'qalc-rates';
 const browser = ref(null);
 const browserSearch = ref('');
 const functions = shallowRef([]);
@@ -70,6 +71,7 @@ createApp({
         const groupedItems = computed(() => {
             const items = { functions: functions.value, variables: variables.value, units: units.value }[browser.value] || [];
             const q = browserSearch.value.trim().toLowerCase();
+            debugger
             const groups = new Map();
             for (const item of items) {
                 if (q && !item.name.toLowerCase().includes(q) && !item.title.toLowerCase().includes(q)) continue;
@@ -123,12 +125,69 @@ document.addEventListener('click', (ev) => {
     }
 });
 
+const RATE_ENDPOINTS = [
+    {
+        url: 'https://latest.currency-api.pages.dev/v1/currencies/eur.json',
+        transform: (data) => Object.fromEntries(
+            Object.entries(data.eur).map(([code, rate]) => [code.toUpperCase(), rate]),
+        ),
+    },
+    {
+        url: 'https://www.mycurrency.net/FR.json',
+        transform: (data) => {
+            const rates = {};
+            for (const [code, v] of Object.entries(data.rates || {})) {
+                if (v && typeof v === 'object' && typeof v.rate === 'number') rates[code.toUpperCase()] = v.rate;
+            }
+            return rates;
+        },
+    },
+    {
+        url: 'https://www.floatrates.com/daily/eur.json',
+        transform: (data) => {
+            const rates = {};
+            for (const [code, v] of Object.entries(data)) {
+                if (v && typeof v === 'object' && typeof v.rate === 'number') rates[code.toUpperCase()] = v.rate;
+            }
+            return rates;
+        },
+    },
+];
+
+async function loadExchangeRates() {
+    if (!calc.value) return;
+    const apply = (rates) => {
+        const vec = new Module.VectorCurrencyRate();
+        for (const [code, rate] of Object.entries(rates)) {
+            if (code.length !== 3 || rate <= 0) continue;
+            vec.push_back({ code, rate });
+        }
+        calc.value.setExchangeRates(vec);
+    };
+    const cached = JSON.parse(localStorage.getItem(RATES_KEY) || 'null');
+    if (cached && Date.now() - cached.ts < 24 * 3600 * 1000) apply(cached.rates);
+    else localStorage.removeItem(RATES_KEY);
+    for (const endpoint of RATE_ENDPOINTS) {
+        try {
+            const res = await fetch(endpoint.url);
+            const rates = endpoint.transform(await res.json());
+            if (!Object.keys(rates).length) continue;
+            apply(rates);
+            localStorage.setItem(RATES_KEY, JSON.stringify({ ts: Date.now(), url: endpoint.url, rates }));
+            return;
+        } catch (e) {
+            console.error('exchange rates fetch failed:', endpoint.url, e);
+        }
+    }
+}
+
 var Module = {
     postRun: () => {
         calc.value = new Module.Calculator();
         calc.value.loadGlobalDefinitions();
         const saved = localStorage.getItem(stateKey);
         if (saved) calc.value.loadState(saved);
+        loadExchangeRates();
         document.getElementById('input').focus();
     },
     print: (text) => console.log(text),

@@ -23,6 +23,11 @@ struct UnitInfo {
     std::string category;
 };
 
+struct CurrencyRate {
+    std::string code;
+    double rate;
+};
+
 static std::string printableCategory(const std::string& cat) {
     bool printable = !cat.empty();
     for (unsigned char c : cat) {
@@ -60,6 +65,21 @@ static std::string jsonEscape(const std::string& s) {
         }
     }
     return out;
+}
+
+static void applyExchangeRate(Calculator& self, const std::string& code, double rate) {
+    if (rate <= 0 || code.length() != 3 || code == "EUR") return;
+    Unit* u = self.getUnit(code);
+    if (!u || !u->isCurrency() || u->subtype() != SUBTYPE_ALIAS_UNIT) return;
+    Unit* eur = self.getUnit("EUR");
+    if (!eur) return;
+    std::ostringstream oss;
+    oss << "1/" << rate;
+    ((AliasUnit*) u)->setBaseUnit(eur);
+    ((AliasUnit*) u)->setExpression(oss.str());
+    u->setApproximate();
+    u->setPrecision(-2);
+    u->setChanged(false);
 }
 
 EMSCRIPTEN_BINDINGS(calculator_bindings) {
@@ -161,6 +181,14 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
                 out.push_back(info);
             }
             return out;
+        }))
+        .function("setExchangeRates", optional_override([](Calculator& self, std::vector<CurrencyRate> rates) -> int {
+            int applied = 0;
+            for (const CurrencyRate& r : rates) {
+                applyExchangeRate(self, r.code, r.rate);
+                applied++;
+            }
+            return applied;
         }));
 }
 
@@ -180,4 +208,8 @@ EMSCRIPTEN_BINDINGS(definition_info_bindings) {
     register_vector<FunctionInfo>("VectorFunctionInfo");
     register_vector<VariableInfo>("VectorVariableInfo");
     register_vector<UnitInfo>("VectorUnitInfo");
+    value_object<CurrencyRate>("CurrencyRate")
+        .field("code", &CurrencyRate::code)
+        .field("rate", &CurrencyRate::rate);
+    register_vector<CurrencyRate>("VectorCurrencyRate");
 }
