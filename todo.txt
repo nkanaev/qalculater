@@ -1,4 +1,3 @@
-- exchange rates
 - autocomplete / function hints
 - settings
 - PWA
