@@ -2,7 +2,6 @@
 #include <emscripten/bind.h>
 #include <sstream>
 #include <vector>
-
 using namespace emscripten;
 
 struct FunctionInfo {
@@ -41,6 +40,7 @@ Calculator* getCalculator() {
     // the Calculator constructor after it's initialized
     if (CALCULATOR == nullptr) {
         new Calculator();
+        CALCULATOR->setExchangeRatesWarningEnabled(false);
     }
     return CALCULATOR;
 }
@@ -65,21 +65,6 @@ static std::string jsonEscape(const std::string& s) {
         }
     }
     return out;
-}
-
-static void applyExchangeRate(Calculator& self, const std::string& code, double rate) {
-    if (rate <= 0 || code.length() != 3 || code == "EUR") return;
-    Unit* u = self.getUnit(code);
-    if (!u || !u->isCurrency() || u->subtype() != SUBTYPE_ALIAS_UNIT) return;
-    Unit* eur = self.getUnit("EUR");
-    if (!eur) return;
-    std::ostringstream oss;
-    oss << "1/" << rate;
-    ((AliasUnit*) u)->setBaseUnit(eur);
-    ((AliasUnit*) u)->setExpression(oss.str());
-    u->setApproximate();
-    u->setPrecision(-2);
-    u->setChanged(false);
 }
 
 EMSCRIPTEN_BINDINGS(calculator_bindings) {
@@ -183,9 +168,22 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
             return out;
         }))
         .function("setExchangeRates", optional_override([](Calculator& self, std::vector<CurrencyRate> rates) -> int {
+            Unit* eur = self.getUnit("EUR");
             int applied = 0;
             for (const CurrencyRate& r : rates) {
-                applyExchangeRate(self, r.code, r.rate);
+                if (r.rate <= 0 || r.code.length() != 3 || r.code == "EUR" || !eur) continue;
+                std::ostringstream oss;
+                oss << "1/" << r.rate;
+                Unit* u = self.getUnit(r.code);
+                if (!u) {
+                    u = self.addUnit(new AliasUnit("Currency", r.code, "", "", "", eur, oss.str(), 1, "", false, true), false, true);
+                }
+                if (!u || !u->isCurrency() || u->subtype() != SUBTYPE_ALIAS_UNIT) continue;
+                ((AliasUnit*) u)->setBaseUnit(eur);
+                ((AliasUnit*) u)->setExpression(oss.str());
+                u->setApproximate();
+                u->setPrecision(-2);
+                u->setChanged(false);
                 applied++;
             }
             return applied;

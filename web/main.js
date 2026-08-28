@@ -71,7 +71,6 @@ createApp({
         const groupedItems = computed(() => {
             const items = { functions: functions.value, variables: variables.value, units: units.value }[browser.value] || [];
             const q = browserSearch.value.trim().toLowerCase();
-            debugger
             const groups = new Map();
             for (const item of items) {
                 if (q && !item.name.toLowerCase().includes(q) && !item.title.toLowerCase().includes(q)) continue;
@@ -152,6 +151,18 @@ const RATE_ENDPOINTS = [
             return rates;
         },
     },
+    /*
+    {
+        url: 'http://www.floatrates.com/daily/eur.json',
+        transform: (data) => {
+            const rates = {};
+            for (const [code, v] of Object.entries(data)) {
+                if (v && typeof v === 'object' && typeof v.rate === 'number') rates[code.toUpperCase()] = v.rate;
+            }
+            return rates;
+        },
+    },
+    */
 ];
 
 async function loadExchangeRates() {
