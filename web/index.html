@@ -20,11 +20,28 @@
         </div>
     </main>
     <footer>
+        <div id="dropdown" v-if="browser" @keydown.escape="closeBrowser">
+            <input id="browser-search" v-model="browserSearch" :placeholder="'search ' + browser"
+                   autocomplete="off" spellcheck="false" @click.stop>
+            <div class="fn-list">
+                <template v-for="group in groupedItems" :key="group.category">
+                    <div class="fn-cat">{{ group.category }}</div>
+                    <button class="fn-item" v-for="item in group.items" :key="item.name" @click="insertItem(item.name)">
+                        <span>{{ item.name }}</span>
+                        <span class="fn-title">{{ item.title }}</span>
+                    </button>
+                </template>
+                <div class="fn-empty" v-if="!groupedItems.length">no matches</div>
+            </div>
+        </div>
         <label id="preview" for="input"></label>
         <textarea id="input" rows="1" v-model="input" @keydown.enter.exact.prevent="submit"
                autofocus autocomplete="off" spellcheck="false"
                placeholder="type an expression and press enter"></textarea>
         <div id="toolbar">
+            <button @click="toggleBrowser('functions')" :class="{ active: browser === 'functions' }">functions</button>
+            <button @click="toggleBrowser('variables')" :class="{ active: browser === 'variables' }">variables</button>
+            <button @click="toggleBrowser('units')" :class="{ active: browser === 'units' }">units</button>
             <button @click="clearHistory">clear</button>
         </div>
     </footer>

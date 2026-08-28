@@ -1,8 +1,35 @@
 #include <libqalculate/qalculate.h>
 #include <emscripten/bind.h>
 #include <sstream>
+#include <vector>
 
 using namespace emscripten;
+
+struct FunctionInfo {
+    std::string name;
+    std::string title;
+    std::string category;
+};
+
+struct VariableInfo {
+    std::string name;
+    std::string title;
+    std::string category;
+};
+
+struct UnitInfo {
+    std::string name;
+    std::string title;
+    std::string category;
+};
+
+static std::string printableCategory(const std::string& cat) {
+    bool printable = !cat.empty();
+    for (unsigned char c : cat) {
+        if (c < 0x20) { printable = false; break; }
+    }
+    return printable ? cat : "Other";
+}
 
 Calculator* getCalculator() {
     // there's only one global calculator, and you're not supposed to call
@@ -92,5 +119,65 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
         }))
         .function("clearState", optional_override([](Calculator& self) {
             self.resetVariables();
+        }))
+        .function("getFunctions", optional_override([](Calculator& self) -> std::vector<FunctionInfo> {
+            std::vector<FunctionInfo> out;
+            for (size_t i = 0;; i++) {
+                MathFunction* f = self.getFunction(i);
+                if (!f) break;
+                if (!f->isActive() || f->isHidden()) continue;
+                FunctionInfo info;
+                info.name = f->referenceName();
+                info.title = f->title(false);
+                info.category = printableCategory(f->category());
+                out.push_back(info);
+            }
+            return out;
+        }))
+        .function("getVariables", optional_override([](Calculator& self) -> std::vector<VariableInfo> {
+            std::vector<VariableInfo> out;
+            for (size_t i = 0;; i++) {
+                Variable* v = self.getVariable(i);
+                if (!v) break;
+                if (!v->isActive() || v->isHidden()) continue;
+                VariableInfo info;
+                info.name = v->referenceName();
+                info.title = v->title(false);
+                info.category = printableCategory(v->category());
+                out.push_back(info);
+            }
+            return out;
+        }))
+        .function("getUnits", optional_override([](Calculator& self) -> std::vector<UnitInfo> {
+            std::vector<UnitInfo> out;
+            for (size_t i = 0;; i++) {
+                Unit* u = self.getUnit(i);
+                if (!u) break;
+                if (!u->isActive() || u->isHidden()) continue;
+                UnitInfo info;
+                info.name = u->referenceName();
+                info.title = u->title(false);
+                info.category = printableCategory(u->category());
+                out.push_back(info);
+            }
+            return out;
         }));
+}
+
+EMSCRIPTEN_BINDINGS(definition_info_bindings) {
+    value_object<FunctionInfo>("FunctionInfo")
+        .field("name", &FunctionInfo::name)
+        .field("title", &FunctionInfo::title)
+        .field("category", &FunctionInfo::category);
+    value_object<VariableInfo>("VariableInfo")
+        .field("name", &VariableInfo::name)
+        .field("title", &VariableInfo::title)
+        .field("category", &VariableInfo::category);
+    value_object<UnitInfo>("UnitInfo")
+        .field("name", &UnitInfo::name)
+        .field("title", &UnitInfo::title)
+        .field("category", &UnitInfo::category);
+    register_vector<FunctionInfo>("VectorFunctionInfo");
+    register_vector<VariableInfo>("VectorVariableInfo");
+    register_vector<UnitInfo>("VectorUnitInfo");
 }

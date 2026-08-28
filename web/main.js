@@ -1,9 +1,15 @@
-const { createApp, ref, shallowRef, computed, watch } = Vue;
+const { createApp, ref, shallowRef, computed, watch, nextTick } = Vue;
 
 const calc = shallowRef(null);
 const input = ref('');
 const entries = ref(JSON.parse(localStorage.getItem('qalc-history') || '[]'));
 const stateKey = 'qalc-state';
+const browser = ref(null);
+const browserSearch = ref('');
+const functions = shallowRef([]);
+const variables = shallowRef([]);
+const units = shallowRef([]);
+const loaded = { functions: false, variables: false, units: false };
 
 watch(entries, (v) => {
     localStorage.setItem('qalc-history', JSON.stringify(v));
@@ -61,9 +67,61 @@ createApp({
             localStorage.removeItem(stateKey);
         }
 
-        return { input, entries: reversed, submit, clearHistory };
+        const groupedItems = computed(() => {
+            const items = { functions: functions.value, variables: variables.value, units: units.value }[browser.value] || [];
+            const q = browserSearch.value.trim().toLowerCase();
+            const groups = new Map();
+            for (const item of items) {
+                if (q && !item.name.toLowerCase().includes(q) && !item.title.toLowerCase().includes(q)) continue;
+                if (!groups.has(item.category)) groups.set(item.category, []);
+                groups.get(item.category).push(item);
+            }
+            return [...groups].map(([category, items]) => ({ category, items }));
+        });
+
+        async function toggleBrowser(type) {
+            if (browser.value === type) {
+                closeBrowser();
+                return;
+            }
+            browser.value = type;
+            if (!loaded[type] && calc.value) {
+                functions.value = calc.value.getFunctions();
+                variables.value = calc.value.getVariables();
+                units.value = calc.value.getUnits();
+                loaded.functions = loaded.variables = loaded.units = true;
+            }
+            await nextTick();
+            const el = document.getElementById('browser-search');
+            if (el) el.focus();
+        }
+
+        function closeBrowser() {
+            browser.value = null;
+            browserSearch.value = '';
+            document.getElementById('input').focus();
+        }
+
+        function insertItem(name) {
+            const ins = browser.value === 'functions' ? name + '(' : name;
+            input.value = (input.value ? input.value + ' ' : '') + ins;
+            closeBrowser();
+        }
+
+        return {
+            input, entries: reversed, submit, clearHistory,
+            browser, browserSearch, groupedItems,
+            toggleBrowser, closeBrowser, insertItem,
+        };
     },
 }).mount('#app');
+
+document.addEventListener('click', (ev) => {
+    if (browser.value && !ev.target.closest('#dropdown') && !ev.target.closest('#toolbar')) {
+        browser.value = null;
+        browserSearch.value = '';
+    }
+});
 
 var Module = {
     postRun: () => {

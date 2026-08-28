@@ -111,9 +111,82 @@ body {
 }
 
 footer {
+    position: relative;
     flex-shrink: 0;
     background: var(--bg);
     border-top: 1px solid var(--border);
+}
+
+#dropdown {
+    position: absolute;
+    bottom: 100%;
+    z-index: 1;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    max-height: 30rem;
+    width: 100%;
+}
+
+#browser-search {
+    flex-shrink: 0;
+    padding: 0.5em 3ch;
+    font-size: 1rem;
+    font-family: var(--font-mono);
+    color: var(--text);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    outline: none;
+    caret-color: var(--caret);
+}
+
+.fn-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.fn-cat {
+    padding: 0.5em 3ch 0.2em;
+    font-size: 0.8em;
+    color: var(--text-secondary);
+}
+
+.fn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1em;
+    width: 100%;
+    padding: 0.2em 3ch;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.fn-item:hover {
+    background: var(--hover-bg);
+}
+
+.fn-title {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.fn-empty {
+    padding: 0.5em 3ch;
+    color: var(--text-secondary);
 }
 
 #preview {
@@ -129,7 +202,6 @@ footer {
 
 #toolbar {
     display: flex;
-    gap: 1ch;
 }
 
 #toolbar button {
@@ -145,6 +217,11 @@ footer {
 
 #toolbar button:hover {
     background: var(--hover-bg);
+}
+
+#toolbar button.active {
+    background: var(--hover-bg);
+    color: var(--text);
 }
 
 #input {
