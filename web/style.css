@@ -128,6 +128,54 @@ footer {
     border-top: 1px solid var(--border);
 }
 
+#ac {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    z-index: 2;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    max-height: 30vh;
+    overflow-y: auto;
+}
+
+#ac button {
+    display: flex;
+    justify-content: space-between;
+    gap: 2ch;
+    width: 100%;
+    padding: 0.3em 3ch;
+    font-family: var(--font-mono);
+    color: var(--text);
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+#ac button.active,
+#ac button:hover {
+    background: var(--hover-bg);
+}
+
+#hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    z-index: 1;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 0.3em 3ch;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 #dropdown {
     position: absolute;
     bottom: 100%;

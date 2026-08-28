@@ -125,8 +125,7 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
         .function("clearState", optional_override([](Calculator& self) {
             self.resetVariables();
         }))
-        .function("getFunctions", optional_override([](Calculator& self) -> std::vector<FunctionInfo> {
-            std::vector<FunctionInfo> out;
+        .function("getFunctions", optional_override([](Calculator& self) -> std::vector<FunctionInfo> {            std::vector<FunctionInfo> out;
             for (size_t i = 0;; i++) {
                 MathFunction* f = self.getFunction(i);
                 if (!f) break;
@@ -187,6 +186,31 @@ EMSCRIPTEN_BINDINGS(calculator_bindings) {
                 applied++;
             }
             return applied;
+        }))
+        .function("getFunctionSignature", optional_override([](Calculator& self, std::string name) -> std::string {
+            MathFunction* f = self.getActiveFunction(name);
+            if (!f) return "";
+            std::ostringstream oss;
+            oss << f->referenceName() << "(";
+            bool first = true;
+            size_t n = f->lastArgumentDefinitionIndex();
+            for (size_t i = 1; i <= n; i++) {
+                Argument* a = f->getArgumentDefinition(i);
+                std::string an = a ? a->name() : "";
+                if (an.empty() && a) an = a->print();
+                if (an.empty()) an = "arg";
+                if (!first) oss << ", ";
+                first = false;
+                oss << an;
+            }
+            if (n == 0 || f->maxargs() < 0 || f->minargs() != f->maxargs()) {
+                if (!first) oss << ", ";
+                oss << "...";
+            }
+            oss << ")";
+            std::string descr = f->description();
+            if (!descr.empty()) oss << "\n" << descr;
+            return oss.str();
         }));
 }
 

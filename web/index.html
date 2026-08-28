@@ -34,8 +34,18 @@
                 <div class="fn-empty px-3 py-1" v-if="!groupedItems.length">no matches</div>
             </div>
         </div>
+        <div id="ac" v-if="acItems.length">
+            <button v-for="(it, i) in acItems" :key="it.name + i"
+                    :class="{ active: i === acIndex }"
+                    @mousedown.prevent="acceptCompletion" @mouseenter="acIndex = i">
+                <span>{{ it.name }}</span>
+                <span class="fn-title">{{ it.title }}</span>
+            </button>
+        </div>
+        <div id="hint" v-if="hint">{{ hint }}</div>
         <label id="preview" for="input"></label>
-        <textarea id="input" class="px-3 py-0" rows="1" v-model="input" @keydown.enter.exact.prevent="submit"
+        <textarea id="input" class="px-3 py-0" rows="1" v-model="input"
+               @keydown="onKeydown" @input="updateAc" @click="updateAc" @keyup="updateAc"
                autofocus autocomplete="off" spellcheck="false"
                placeholder="type an expression and press enter"></textarea>
         <div id="toolbar">

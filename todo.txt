@@ -1,4 +1,3 @@
-- autocomplete / function hints
 - settings
 - PWA
 - keyboard shortcuts

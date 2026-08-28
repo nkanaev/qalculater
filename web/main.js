@@ -11,6 +11,12 @@ const functions = shallowRef([]);
 const variables = shallowRef([]);
 const units = shallowRef([]);
 const loaded = { functions: false, variables: false, units: false };
+const acItems = ref([]);
+const acIndex = ref(0);
+const hint = ref('');
+const acStart = ref(0);
+let lastAcKey = '';
+const allNames = [];
 
 watch(entries, (v) => {
     localStorage.setItem('qalc-history', JSON.stringify(v));
@@ -86,15 +92,22 @@ createApp({
                 return;
             }
             browser.value = type;
-            if (!loaded[type] && calc.value) {
-                functions.value = calc.value.getFunctions();
-                variables.value = calc.value.getVariables();
-                units.value = calc.value.getUnits();
-                loaded.functions = loaded.variables = loaded.units = true;
-            }
+            loadDefs();
             await nextTick();
             const el = document.getElementById('browser-search');
             if (el) el.focus();
+        }
+
+        function loadDefs() {
+            if (!calc.value || loaded.functions) return;
+            functions.value = calc.value.getFunctions();
+            variables.value = calc.value.getVariables();
+            units.value = calc.value.getUnits();
+            loaded.functions = loaded.variables = loaded.units = true;
+            allNames.length = 0;
+            for (const f of functions.value) allNames.push({ name: f.name, title: f.title, type: 'f' });
+            for (const v of variables.value) allNames.push({ name: v.name, title: v.title, type: 'v' });
+            for (const u of units.value) allNames.push({ name: u.name, title: u.title, type: 'u' });
         }
 
         function closeBrowser() {
@@ -109,10 +122,87 @@ createApp({
             closeBrowser();
         }
 
+        function updateAc() {
+            if (!calc.value) {
+                acItems.value = [];
+                hint.value = '';
+                return;
+            }
+            if (!loaded.functions) loadDefs();
+            const el = document.getElementById('input');
+            const caret = el ? el.selectionStart : input.value.length;
+            const text = input.value;
+            let start = caret;
+            while (start > 0 && /[\w.']/.test(text[start - 1])) start--;
+            const token = text.slice(start, caret);
+            acStart.value = start;
+
+            let matches = [];
+            if (token) {
+                const q = token.toLowerCase();
+                for (const it of allNames) {
+                    if (it.name.toLowerCase().startsWith(q)) matches.push(it);
+                    if (matches.length >= 8) break;
+                }
+            }
+            const key = start + '|' + matches.map((x) => x.name).join(',');
+            if (key !== lastAcKey) acIndex.value = 0;
+            lastAcKey = key;
+            acItems.value = matches;
+
+            hint.value = '';
+            let depth = 0;
+            let openIdx = -1;
+            for (let j = caret - 1; j >= 0; j--) {
+                const ch = text[j];
+                if (ch === ')') depth++;
+                else if (ch === '(') {
+                    if (depth > 0) depth--;
+                    else { openIdx = j; break; }
+                }
+            }
+            if (openIdx >= 0) {
+                const m = text.slice(0, openIdx).match(/([A-Za-z][A-Za-z0-9_]*)\s*$/);
+                if (m) hint.value = calc.value.getFunctionSignature(m[1]);
+            }
+        }
+
+        function acceptCompletion() {
+            const it = acItems.value[acIndex.value];
+            if (!it) return;
+            const el = document.getElementById('input');
+            const caret = el ? el.selectionStart : input.value.length;
+            const name = it.type === 'f' ? it.name + '(' : it.name;
+            input.value = input.value.slice(0, acStart.value) + name + input.value.slice(caret);
+            acItems.value = [];
+            hint.value = '';
+            const pos = acStart.value + name.length;
+            if (el) {
+                el.focus();
+                el.setSelectionRange(pos, pos);
+            }
+            updateAc();
+        }
+
+        function onKeydown(ev) {
+            if (acItems.value.length) {
+                if (ev.key === 'ArrowDown') { ev.preventDefault(); acIndex.value = (acIndex.value + 1) % acItems.value.length; return; }
+                if (ev.key === 'ArrowUp') { ev.preventDefault(); acIndex.value = (acIndex.value - 1 + acItems.value.length) % acItems.value.length; return; }
+                if (ev.key === 'Tab') { ev.preventDefault(); acceptCompletion(); return; }
+                if (ev.key === 'Escape') { acItems.value = []; hint.value = ''; return; }
+            }
+            if (ev.key === 'Enter' && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+                ev.preventDefault();
+                submit();
+            }
+        }
+
         return {
             input, entries: reversed, submit, clearHistory,
             browser, browserSearch, groupedItems,
             toggleBrowser, closeBrowser, insertItem,
+            acItems, acIndex, hint,
+            updateAc, acceptCompletion, onKeydown,
         };
     },
 }).mount('#app');
