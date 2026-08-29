@@ -1,4 +1,4 @@
-# qalculater
+# qalcy
 
 Web version of [Qalculate](https://qalculate.github.io/).
 
